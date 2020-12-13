@@ -15,13 +15,24 @@ import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout.Behavior.getTag
 import kotlin.IllegalStateException
 import android.nfc.tech.MifareClassic
+import android.widget.Button
 import android.widget.EditText
 import androidx.preference.PreferenceManager
+import com.example.rubdevsrfid.interfaces.SellerAPI
+import com.example.rubdevsrfid.models.Seller
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
     private var adapter: NfcAdapter? = null
     lateinit var vendedor_nombre: EditText
     lateinit var NoHabitacion: EditText
+    lateinit var enviar: Button
+    lateinit var retrofit: Retrofit
+    lateinit var id_seller: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -30,12 +41,21 @@ class MainActivity : AppCompatActivity() {
         val preferences = Preferences(this)
         val api_url = preferences.get_api_url(SP)
         val api_port = preferences.get_api_puerto(SP)
+        vendedor_nombre = findViewById(R.id.vendedor_nombre)
+        NoHabitacion = findViewById(R.id.seller_room)
+        enviar = findViewById(R.id.enviar)
         if (api_url == ""  && api_port == "")
         {
             val intent = Intent(applicationContext,SettingsActivity::class.java)
             startActivity(intent)
             finish()
         }
+        val url_to_api = api_url+":"+api_port
+        retrofit = Retrofit.Builder()
+            .baseUrl(url_to_api)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
         initNfcAdapter()
     }
 
@@ -52,7 +72,20 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent?.action.equals(NfcAdapter.ACTION_TAG_DISCOVERED)){
-            vendedor_nombre = findViewById(R.id.vendedor_nombre)
+            id_seller = ByteArrayToHexString(intent?.getByteArrayExtra(NfcAdapter.EXTRA_ID))
+            val service = retrofit.create<SellerAPI>(SellerAPI::class.java)
+            service.find(id_seller).enqueue(object : Callback<Seller>{
+                override fun onResponse(call: Call<Seller>, response: Response<Seller>) {
+                   val seller = response?.body()
+
+                }
+
+                override fun onFailure(call: Call<Seller>, t: Throwable) {
+                    t?.printStackTrace()
+                }
+
+            })
+
             if (ByteArrayToHexString(intent?.getByteArrayExtra(NfcAdapter.EXTRA_ID)) == "0DA1C75F") {
                 vendedor_nombre.setText(
                         "Ruben Hernandez"
