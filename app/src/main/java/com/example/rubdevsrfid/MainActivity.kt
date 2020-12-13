@@ -15,16 +15,20 @@ import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout.Behavior.getTag
 import kotlin.IllegalStateException
 import android.nfc.tech.MifareClassic
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 import androidx.preference.PreferenceManager
 import com.example.rubdevsrfid.interfaces.SellerAPI
 import com.example.rubdevsrfid.models.Seller
+import com.example.rubdevsrfid.models.SellerRoom
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private var adapter: NfcAdapter? = null
@@ -33,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var enviar: Button
     lateinit var retrofit: Retrofit
     lateinit var id_seller: String
+    lateinit var urlToAPI: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -44,15 +49,39 @@ class MainActivity : AppCompatActivity() {
         vendedor_nombre = findViewById(R.id.vendedor_nombre)
         NoHabitacion = findViewById(R.id.seller_room)
         enviar = findViewById(R.id.enviar)
+        vendedor_nombre.isEnabled = false
+        id_seller = ""
+        enviar.setOnClickListener(View.OnClickListener {
+            if (!vendedor_nombre.text.equals("") && !NoHabitacion.text.equals("") ) {
+                val service = retrofit.create<SellerAPI>(SellerAPI::class.java)
+                val registro : SellerRoom = SellerRoom()
+                registro.room = NoHabitacion.text.toString()
+                registro.seller = id_seller
+                registro.fecha = Date()
+                service.save(registro).enqueue(object : Callback<SellerRoom> {
+                    override fun onResponse(call: Call<SellerRoom>, response: Response<SellerRoom>) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onFailure(call: Call<SellerRoom>, t: Throwable) {
+                        t?.printStackTrace()
+                        Toast.makeText(applicationContext,"Error al guardar el registro", Toast.LENGTH_SHORT).show()
+                    }
+
+                })
+            } else {
+                Toast.makeText(applicationContext,"Comlete el campo Habitacion", Toast.LENGTH_SHORT).show()
+            }
+        })
         if (api_url == ""  && api_port == "")
         {
             val intent = Intent(applicationContext,SettingsActivity::class.java)
             startActivity(intent)
             finish()
         }
-        val url_to_api = api_url+":"+api_port
+        urlToAPI = "$api_url:$api_port"
         retrofit = Retrofit.Builder()
-            .baseUrl(url_to_api)
+            .baseUrl(urlToAPI)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
@@ -82,11 +111,12 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onFailure(call: Call<Seller>, t: Throwable) {
                     t?.printStackTrace()
+                    Toast.makeText(applicationContext,"Error al obtener datos", Toast.LENGTH_SHORT).show()
                 }
 
             })
 
-            if (ByteArrayToHexString(intent?.getByteArrayExtra(NfcAdapter.EXTRA_ID)) == "0DA1C75F") {
+            if (id_seller == "0DA1C75F") {
                 vendedor_nombre.setText(
                         "Ruben Hernandez"
                 )

@@ -10,9 +10,9 @@ import retrofit2.http.Path
 
 
 public interface SellerAPI {
-    @GET("api/seller/{id}")
+    @GET("/api/seller/{id}")
     fun find(@Path ("id") id: String): Call<Seller>
 
-    @POST("api/seller")
+    @POST("/api/seller")
     fun save(@Body sellerRoom: SellerRoom?) : Call<SellerRoom>
 }
